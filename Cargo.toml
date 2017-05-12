@@ -1,0 +1,7 @@
+[package]
+name = "svg"
+version = "0.1.0"
+authors = ["bombless"]
+
+[dependencies]
+svgparser = "*"
