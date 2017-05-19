@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["bombless"]
 
 [dependencies]
-svgparser = "*"
+svgparser = "0.3.1"
