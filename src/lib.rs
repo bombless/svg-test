@@ -78,7 +78,7 @@ impl SvgEvent {
                         }
                     }
                     else if k == "stroke" {
-                        stroke = svgparser::RgbColor::from_stream(&mut svgparser::Stream::new(v.as_bytes())).ok()
+                        stroke = Some(svgparser::RgbColor::from_stream(&mut svgparser::Stream::new(v.as_bytes())).map_err(|_| ())?)
                     }
                     else if k == "stroke-width" {
                         stroke_width = v.parse().ok()
