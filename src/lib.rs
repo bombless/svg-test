@@ -13,6 +13,8 @@ pub enum SvgEvent {
         y1: f64,
         y2: f64,
         view_box: [f64; 4],
+        stroke: svgparser::RgbColor,
+        stroke_width: f64,
     }
 }
 
@@ -44,12 +46,14 @@ impl<'a> From<SvgToken<'a>> for Token {
 }
 
 impl SvgEvent {
-    fn from_stack(s: ElementStack, view_box: [f64; 4]) -> Self {
+    fn from_stack(s: ElementStack, view_box: [f64; 4]) -> Result<Self, ()> {
         if s.kind == "line" {
             let mut x1 = None;
             let mut x2 = None;
             let mut y1 = None;
             let mut y2 = None;
+            let mut stroke = None;
+            let mut stroke_width = None;
 
             for t in &s.stack {
                 if let &Token::Attribute(ref k, ref v) = t {
@@ -58,27 +62,36 @@ impl SvgEvent {
                             x1 = Some(v)
                         }
                     }
-                    if k == "y1" {
+                    else if k == "y1" {
                         if let Ok(v) = v.parse() {
                             y1 = Some(v)
                         }
                     }
-                    if k == "x2" {
+                    else if k == "x2" {
                         if let Ok(v) = v.parse() {
                             x2 = Some(v)
                         }
                     }
-                    if k == "y2" {
+                    else if k == "y2" {
                         if let Ok(v) = v.parse() {
                             y2 = Some(v)
                         }
                     }
+                    else if k == "stroke" {
+                        stroke = svgparser::RgbColor::from_stream(&mut svgparser::Stream::new(v.as_bytes())).ok()
+                    }
+                    else if k == "stroke-width" {
+                        stroke_width = v.parse().ok()
+                    }
+                    else {
+                        println!("{:?}", k)
+                    }
                 }
             }
-            match (x1, x2, y1, y2) {
-                (Some(x1), Some(x2), Some(y1), Some(y2)) => return SvgEvent::Line {
-                    x1, x2, y1, y2, view_box,
-                },
+            match (x1, x2, y1, y2, stroke, stroke_width) {
+                (Some(x1), Some(x2), Some(y1), Some(y2), Some(stroke), Some(stroke_width)) => return Ok(SvgEvent::Line {
+                    x1, x2, y1, y2, view_box, stroke, stroke_width
+                }),
                 _ => ()
             }
         }
@@ -109,7 +122,6 @@ pub fn parse(src: &str) -> Result<Vec<SvgEvent>, ()> {
     } else {
         return Err(())
     };
-    println!("{:?}", x);
     if let SvgToken::EndOfStream = x {
       return Err(())
     }
@@ -136,7 +148,7 @@ pub fn parse(src: &str) -> Result<Vec<SvgEvent>, ()> {
                 }
             } else {
                 return Err(())
-            }            
+            }
         }
     }
   }
@@ -147,7 +159,7 @@ pub fn parse(src: &str) -> Result<Vec<SvgEvent>, ()> {
     }
     if let SvgToken::ElementStart(name) = x {
       if let Ok(s) = stack(std::str::from_utf8(name).unwrap().to_owned(), &mut p) {
-          ret.push(SvgEvent::from_stack(s, view_box.unwrap_or_else(|| [0.0; 4])))
+          ret.push(SvgEvent::from_stack(s, view_box.unwrap_or_else(|| [0.0; 4]))?)
       } else {
           return Err(())
       }
