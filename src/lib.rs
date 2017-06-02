@@ -15,7 +15,8 @@ pub enum SvgEvent {
         view_box: [f64; 4],
         stroke: svgparser::RgbColor,
         stroke_width: f64,
-    }
+    },
+    Text(String),
 }
 
 #[derive(Debug)]
@@ -38,7 +39,7 @@ impl<'a> From<SvgToken<'a>> for Token {
             Attribute(k, v) => {
                 Token::Attribute(std::str::from_utf8(k).unwrap().to_owned(), std::str::from_utf8(v.slice()).unwrap().to_owned())
             },
-            Text(s) => Token::Text(std::str::from_utf8(s.slice()).unwrap().to_owned()),
+            Text(s) => Token::Text(decode::decode(std::str::from_utf8(s.slice()).unwrap()).unwrap()),
             Whitespace(_) => Token::Whitespace,
             _ => unimplemented!()
         }
@@ -83,9 +84,6 @@ impl SvgEvent {
                     else if k == "stroke-width" {
                         stroke_width = v.parse().ok()
                     }
-                    else {
-                        println!("{:?}", k)
-                    }
                 }
             }
             match (x1, x2, y1, y2, stroke, stroke_width) {
@@ -94,8 +92,14 @@ impl SvgEvent {
                 }),
                 _ => ()
             }
+        } else if s.kind == "text" {
+            for t in &s.stack {
+                if let &Token::Text(ref s) = t {
+                    return Ok(SvgEvent::Text(s.to_owned()))
+                }
+            }
         }
-        unimplemented!()
+        Err(())
     }
 }
 
@@ -159,7 +163,7 @@ pub fn parse(src: &str) -> Result<Vec<SvgEvent>, ()> {
     }
     if let SvgToken::ElementStart(name) = x {
       if let Ok(s) = stack(std::str::from_utf8(name).unwrap().to_owned(), &mut p) {
-          ret.push(SvgEvent::from_stack(s, view_box.unwrap_or_else(|| [0.0; 4]))?)
+          ret.push(SvgEvent::from_stack(s, view_box.unwrap_or_else(|| [0.0; 4])).map_err(|_| while let Ok(x) = p.parse_next() { println!("{:?}", x); if let SvgToken::ElementEnd(_) = x { return } })?)
       } else {
           return Err(())
       }
@@ -171,10 +175,16 @@ pub fn parse(src: &str) -> Result<Vec<SvgEvent>, ()> {
 fn stack(name: String, parser: &mut svg_parser::Tokenizer) -> Result<ElementStack, ()> {
   let mut stack = ElementStack::new(name);
   while let Ok(x) = parser.parse_next() {
-    if let SvgToken::ElementEnd(_) = x {
-      return Ok(stack)
+    use svgparser::svg::ElementEnd::*;
+    match &x {
+        &SvgToken::ElementEnd(Close(_)) |
+        &SvgToken::ElementEnd(Empty) => return Ok(stack),
+        &SvgToken::ElementEnd(_) => continue,
+        _ => (),
     }
     stack.push(x)
   }
   unimplemented!()
 }
+
+mod decode;
