@@ -17,6 +17,12 @@ pub enum SvgEvent {
         stroke_width: f64,
     },
     Text(String),
+    Circle {
+        fill: svgparser::RgbColor,
+        cx: f64,
+        cy: f64,
+        r: f64,
+    }
 }
 
 #[derive(Debug)]
@@ -97,6 +103,37 @@ impl SvgEvent {
                 if let &Token::Text(ref s) = t {
                     return Ok(SvgEvent::Text(s.to_owned()))
                 }
+            }
+        } else if s.kind == "circle" {
+            let mut fill = None;
+            let mut cx = None;
+            let mut cy = None;
+            let mut r = None;
+
+            for t in &s.stack {
+                if let &Token::Attribute(ref k, ref v) = t {
+                    if k == "fill" {
+                        fill = Some(svgparser::RgbColor::from_stream(&mut svgparser::Stream::new(v.as_bytes())).map_err(|_| ())?)
+                    } else if k == "cx" {
+                        if let Ok(v) = v.parse() {
+                            cx = Some(v)
+                        }
+                    } else if k == "cy" {
+                        if let Ok(v) = v.parse() {
+                            cy = Some(v)
+                        }
+                    } else if k == "r" {
+                        if let Ok(v) = v.parse() {
+                            r = Some(v)
+                        }
+                    }
+                }
+            }
+            match (fill, cx, cy, r) {
+                (Some(fill), Some(cx), Some(cy), Some(r)) => return Ok(SvgEvent::Circle {
+                    fill, cx, cy, r
+                }),
+                _ => ()
             }
         }
         Err(())
