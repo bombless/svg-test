@@ -12,7 +12,6 @@ pub enum SvgEvent {
         x2: f64,
         y1: f64,
         y2: f64,
-        view_box: [f64; 4],
         stroke: svgparser::RgbColor,
         stroke_width: f64,
     },
@@ -53,7 +52,7 @@ impl<'a> From<SvgToken<'a>> for Token {
 }
 
 impl SvgEvent {
-    fn from_stack(s: ElementStack, view_box: [f64; 4]) -> Result<Self, ()> {
+    fn from_stack(s: ElementStack) -> Result<Self, ()> {
         if s.kind == "line" {
             let mut x1 = None;
             let mut x2 = None;
@@ -94,7 +93,7 @@ impl SvgEvent {
             }
             match (x1, x2, y1, y2, stroke, stroke_width) {
                 (Some(x1), Some(x2), Some(y1), Some(y2), Some(stroke), Some(stroke_width)) => return Ok(SvgEvent::Line {
-                    x1, x2, y1, y2, view_box, stroke, stroke_width
+                    x1, x2, y1, y2, stroke, stroke_width
                 }),
                 _ => ()
             }
@@ -154,7 +153,12 @@ impl ElementStack {
     }
 }
 
-pub fn parse(src: &str) -> Result<Vec<SvgEvent>, ()> {
+pub struct SvgEvents {
+    pub view_box: [f64; 4],
+    pub events: Vec<SvgEvent>,
+}
+
+pub fn parse(src: &str) -> Result<SvgEvents, ()> {
   let mut p = svg_parser::Tokenizer::new(src.as_bytes());
   let mut view_box = None;
   loop {
@@ -196,11 +200,17 @@ pub fn parse(src: &str) -> Result<Vec<SvgEvent>, ()> {
   let mut ret = Vec::new();
   while let Ok(x) = p.parse_next() {
     if x == SvgToken::EndOfStream {
-      return Ok(ret)
+      if let Some(view_box) = view_box {
+        return Ok(SvgEvents {
+            view_box,
+            events: ret,
+        })
+      }
+      
     }
     if let SvgToken::ElementStart(name) = x {
       if let Ok(s) = stack(std::str::from_utf8(name).unwrap().to_owned(), &mut p) {
-          ret.push(SvgEvent::from_stack(s, view_box.unwrap_or_else(|| [0.0; 4])).map_err(|_| while let Ok(x) = p.parse_next() { println!("{:?}", x); if let SvgToken::ElementEnd(_) = x { return } })?)
+          ret.push(SvgEvent::from_stack(s)?)
       } else {
           return Err(())
       }
