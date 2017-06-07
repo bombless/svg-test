@@ -1,7 +1,7 @@
 
 extern crate svgparser;
 
-pub use svgparser::svg::Token as SvgToken;
+use svgparser::svg::Token as SvgToken;
 use svgparser::svg as svg_parser;
 
 
@@ -21,8 +21,14 @@ pub enum SvgEvent {
         cx: f64,
         cy: f64,
         r: f64,
+    },
+    Path {
+        fill: svgparser::RgbColor,
+        data: Vec<paths::Data>,
     }
 }
+
+mod paths;
 
 #[derive(Debug)]
 pub struct ElementStack {
