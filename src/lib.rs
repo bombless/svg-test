@@ -159,6 +159,7 @@ impl ElementStack {
     }
 }
 
+#[derive(Debug)]
 pub struct SvgEvents {
     pub view_box: [f64; 4],
     pub events: Vec<SvgEvent>,

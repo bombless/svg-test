@@ -91,6 +91,7 @@ pub enum Data {
   }
 }
 
+#[derive(Debug, PartialEq)]
 enum Element {
   Float(f64),
   Char(char),
@@ -116,4 +117,13 @@ fn parse_to_elements(s: &str) -> Result<Vec<Element>, ()> {
     ret.push(Float(float.parse().map_err(|_| ())?))
   }
   Ok(ret)
+}
+
+#[cfg(test)]
+mod tests {
+  #[test]fn test() {
+    use super::Element::*;
+    assert_eq!(&super::parse_to_elements("a b c").unwrap()[..], [Char('a'), Char('b'), Char('c')]);
+    assert_ne!(&super::parse_to_elements("a b c").unwrap()[..], [Char('a'), Char('b')])
+  }
 }
