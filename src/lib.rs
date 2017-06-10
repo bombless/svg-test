@@ -140,6 +140,25 @@ impl SvgEvent {
                 }),
                 _ => ()
             }
+        } else if s.kind == "path" {
+            let mut fill = None;
+            let mut d = None;
+            for t in &s.stack {
+                if let &Token::Attribute(ref k, ref v) = t {
+                    if k == "fill" {
+                        fill = Some(svgparser::RgbColor::from_stream(&mut svgparser::Stream::new(v.as_bytes())).map_err(|_| ())?)
+                    } else if k == "d" {
+                        d = Some(paths::parse(v)?)
+                    }
+                }
+            }
+            match (fill, d) {
+                (Some(fill), Some(d)) => return Ok(SvgEvent::Path {
+                    fill, data: d
+                }),
+                _ => ()
+            }
+                
         }
         Err(())
     }

@@ -106,10 +106,16 @@ fn parse_to_elements(s: &str) -> Result<Vec<Element>, ()> {
       float.push(c)
     } else if c.is_alphabetic() {
       if !float.is_empty() {
-        ret.push(Float(float.parse().map_err(|_| ())?))
+        ret.push(Float(float.parse().map_err(|_| ())?));
+        float.clear();
       }
       ret.push(Char(c))
-    } else if !c.is_whitespace() {
+    } else if c.is_whitespace() {
+      if !float.is_empty() {
+        ret.push(Float(float.parse().map_err(|_| ())?));
+        float.clear();
+      }
+    } else {
       return Err(())
     }
   }
@@ -126,4 +132,34 @@ mod tests {
     assert_eq!(&super::parse_to_elements("a b c").unwrap()[..], [Char('a'), Char('b'), Char('c')]);
     assert_ne!(&super::parse_to_elements("a b c").unwrap()[..], [Char('a'), Char('b')])
   }
+}
+
+pub fn parse(s: &str) -> Result<Vec<Data>, ()> {
+  use self::Element::*;
+  use ::std::mem::replace;
+  let mut s = parse_to_elements(s)?.into_iter();
+  let mut floats = Vec::new();
+  let mut ret = Vec::new();
+  let mut prev_c = if let Some(Char(x)) = s.next() {
+    x
+  } else {
+    return Err(())
+  };
+  for e in s {
+    match e {
+      Float(f) => floats.push(f),
+      Char(c) => ret.push(Data::from_pattern(prev_c, if let Some(x) = Numbers::parse(&replace(&mut floats, Vec::new())) {
+        prev_c = c;
+        x
+      } else {
+        return Err(())
+      })?)
+    }
+  }
+  ret.push(Data::from_pattern(prev_c, if let Some(x) = Numbers::parse(&replace(&mut floats, Vec::new())) {
+    x
+  } else {
+    return Err(())
+  })?);
+  Ok(ret)
 }
