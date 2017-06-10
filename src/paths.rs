@@ -58,6 +58,21 @@ enum Numbers {
   Zero, One(f64), Two(f64, f64), Four(f64, f64, f64, f64), Six(f64, f64, f64, f64, f64, f64), Seven(f64, f64, f64, f64, f64, f64, f64)
 }
 
+impl Numbers {
+  fn parse(from: &[f64]) -> Option<Self> {    
+    let len = from.len();
+    Some(match len {
+      0 => Zero,
+      1 => One(from[0]),
+      2 => Two(from[0], from[1]),
+      4 => Four(from[0], from[1], from[2], from[3]),
+      6 => Six(from[0], from[1], from[2], from[3], from[4], from[5]),
+      7 => Seven(from[0], from[1], from[2], from[3], from[4], from[5], from[6]),
+      _ => return None
+    })
+  }
+}
+
 #[derive(Debug)]
 pub enum Data {
   Moveto(Relation, f64, f64),
@@ -74,4 +89,31 @@ pub enum Data {
     relation: Relation,
     rx: f64, ry: f64, x_asix_rotation: f64, large_arc_flag: bool, sweep_flag: f64, x: f64, y: f64,
   }
+}
+
+enum Element {
+  Float(f64),
+  Char(char),
+}
+
+fn parse_to_elements(s: &str) -> Result<Vec<Element>, ()> {
+  use self::Element::*;
+  let mut float = String::new();
+  let mut ret = Vec::new();
+  for c in s.chars() {
+    if c.is_numeric() || c == '.' {
+      float.push(c)
+    } else if c.is_alphabetic() {
+      if !float.is_empty() {
+        ret.push(Float(float.parse().map_err(|_| ())?))
+      }
+      ret.push(Char(c))
+    } else if !c.is_whitespace() {
+      return Err(())
+    }
+  }
+  if !float.is_empty() {
+    ret.push(Float(float.parse().map_err(|_| ())?))
+  }
+  Ok(ret)
 }
