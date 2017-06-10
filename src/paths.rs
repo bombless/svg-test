@@ -13,6 +13,9 @@ use self::Relation::*;
 
 impl Data {
   fn from_pattern(c: char, data: Numbers) -> Result<Self, ()> {
+    // N.B.
+    // doc says "Flags and booleans are interpolated as fractions between zero and one,
+    // with any non-zero value considered to be a value of one/true"
     match (c, data) {
       ('m', Two(x, y)) => Ok(Moveto(Relative, x, y)),
       ('M', Two(x, y)) => Ok(Moveto(Absolute, x, y)),
@@ -31,17 +34,17 @@ impl Data {
       ('Q', Four(x1, y1, x, y)) => Ok(BezierCurveto(Absolute, x1, y1, x, y)),
       ('t', Two(x, y)) => Ok(SmoothQuadraticBezierCurveto(Relative, x, y)),
       ('T', Two(x, y)) => Ok(SmoothQuadraticBezierCurveto(Absolute, x, y)),
-      ('a', Seven(rx, ry, x_asix_rotation, 1., sweep_flag, x, y)) => Ok(Arc {
-        rx, ry, x_asix_rotation, sweep_flag, x, y, large_arc_flag: true, relation: Relative,
+      ('a', Seven(rx, ry, x_asix_rotation, large_arc_flag, sweep_flag, x, y)) => Ok(Arc {
+        rx, ry, x_asix_rotation, x, y,
+        large_arc_flag: if large_arc_flag == 1. { true } else if large_arc_flag == 0. { false } else { return Err(()) },
+        sweep_flag: if sweep_flag == 1. { true } else if sweep_flag == 0. { false } else { return Err(()) },
+        relation: Relative,
       }),
-      ('a', Seven(rx, ry, x_asix_rotation, 0., sweep_flag, x, y)) => Ok(Arc {
-        rx, ry, x_asix_rotation, sweep_flag, x, y, large_arc_flag: false, relation: Relative,
-      }),
-      ('A', Seven(rx, ry, x_asix_rotation, 1., sweep_flag, x, y)) => Ok(Arc {
-        rx, ry, x_asix_rotation, sweep_flag, x, y, large_arc_flag: true, relation: Absolute,
-      }),
-      ('A', Seven(rx, ry, x_asix_rotation, 0., sweep_flag, x, y)) => Ok(Arc {
-        rx, ry, x_asix_rotation, sweep_flag, x, y, large_arc_flag: false, relation: Absolute,
+      ('A', Seven(rx, ry, x_asix_rotation, large_arc_flag, sweep_flag, x, y)) => Ok(Arc {
+        rx, ry, x_asix_rotation, x, y,
+        large_arc_flag: large_arc_flag != 0.,
+        sweep_flag: sweep_flag != 0.,
+        relation: Absolute,
       }),
       _ => Err(())
     }
@@ -87,7 +90,7 @@ pub enum Data {
   SmoothQuadraticBezierCurveto(Relation, f64, f64),
   Arc {
     relation: Relation,
-    rx: f64, ry: f64, x_asix_rotation: f64, large_arc_flag: bool, sweep_flag: f64, x: f64, y: f64,
+    rx: f64, ry: f64, x_asix_rotation: f64, large_arc_flag: bool, sweep_flag: bool, x: f64, y: f64,
   }
 }
 
