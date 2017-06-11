@@ -36,8 +36,8 @@ impl Data {
       ('T', Two(x, y)) => Ok(SmoothQuadraticBezierCurveto(Absolute, x, y)),
       ('a', Seven(rx, ry, x_asix_rotation, large_arc_flag, sweep_flag, x, y)) => Ok(Arc {
         rx, ry, x_asix_rotation, x, y,
-        large_arc_flag: if large_arc_flag == 1. { true } else if large_arc_flag == 0. { false } else { return Err(()) },
-        sweep_flag: if sweep_flag == 1. { true } else if sweep_flag == 0. { false } else { return Err(()) },
+        large_arc_flag: large_arc_flag != 0.,
+        sweep_flag: sweep_flag != 0.,
         relation: Relative,
       }),
       ('A', Seven(rx, ry, x_asix_rotation, large_arc_flag, sweep_flag, x, y)) => Ok(Arc {
