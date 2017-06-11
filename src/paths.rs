@@ -151,15 +151,19 @@ pub fn parse(s: &str) -> Result<Vec<Data>, ()> {
   for e in s {
     match e {
       Float(f) => floats.push(f),
-      Char(c) => ret.push(Data::from_pattern(prev_c, if let Some(x) = Numbers::parse(&replace(&mut floats, Vec::new())) {
-        prev_c = c;
-        x
-      } else {
-        return Err(())
-      })?)
+      Char(c) => {
+        let floats = replace(&mut floats, Vec::new());
+        let numbers = if let Some(x) = Numbers::parse(&floats) {
+          x
+        } else {
+          return Err(())
+        };
+        let data = Data::from_pattern(replace(&mut prev_c, c), numbers)?;
+        ret.push(data)
+      }
     }
   }
-  ret.push(Data::from_pattern(prev_c, if let Some(x) = Numbers::parse(&replace(&mut floats, Vec::new())) {
+  ret.push(Data::from_pattern(prev_c, if let Some(x) = Numbers::parse(&floats) {
     x
   } else {
     return Err(())
