@@ -1,7 +1,7 @@
 /// <https://www.w3.org/TR/SVG/paths.html>
 
 /// The whole assumption is wrong,
-/// that each command can actually contain seraval groups of arguments
+/// that each command can actually contain several groups of arguments
 /// for now we only handle one group of argument
 /// and consider other options to be ill-formed
 
